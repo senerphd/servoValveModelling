@@ -45,7 +45,7 @@ grid on
 %% 1. Sisteme Ait Giriş Verileri (Katalog ve Test Koşulları)
 close all 
 
-Ps = 2980 * psi2Pa; % 3000psi yapıldı  % [bar] Besleme basıncı (Örnek değer, kendi test verinizle güncelleyin)
+Ps = 3000 * psi2Pa; % 3000psi yapıldı  % [bar] Besleme basıncı (Örnek değer, kendi test verinizle güncelleyin)
 Pr = 0;             % [bar] Dönüş hattı basıncı
 
 % Katalogdan veya Testten Alınacak Veriler:
@@ -56,13 +56,13 @@ DeltaP_FlowGain = 1000 * psi2Pa; % Flow gain testleri 1000 psi deltaP'de yapıld
 % Flow gain hesaplama 
 K = (sqrt(2) * Q_max) / (sqrt(DeltaP_FlowGain) * I_max) % [m3Ps/sqrt(Pa).A]
 
-Q_tare  = 0.64 * lpm2m3Ps; % Test verisinden elde edildi
+Q_tare  = 0.0 * lpm2m3Ps; % Test verisinden elde edildi
 Qs_test =  leakageFlow_filtered_lpm * lpm2m3Ps - Q_tare; % Test verisinden elde edildi.
-Qs_at_xeq0 = (1.32-0.64)*lpm2m3Ps % max(Qs_test)
+Qs_at_xeq0 = 1.325*lpm2m3Ps % max(Qs_test)
 
 x0 = Qs_at_xeq0 / (sqrt(2)*K*sqrt(Ps - Pr));
 
-PL_at_x0 = 188.15 * bar2Pa;
+PL_at_x0 = 186.15 * bar2Pa;
 
 k = (1/2) * sqrt((Ps - Pr + PL_at_x0)/(Ps - Pr - PL_at_x0)) - 1; 
 %% 4. Model Simülasyonu ve Görselleştirme
@@ -72,7 +72,7 @@ I_range = linspace(-25e-3, 25e-3, 1000); % Akım aralığı [A]
 f_x = (1 + abs(I_range)/x0).^2 .* (1 + k * abs(I_range)/x0).^2;
 
 % Sızıntı Debisi Modeli (Qs) 
-Qs_model =  2 * K * sqrt(Ps - Pr) * (x0 + abs(I_range)) .* (1 + f_x).^(-1/2) ; 
+Qs_model =  2 * K * sqrt(Ps - Pr) * (x0 + abs(I_range)) .* (1 + f_x).^(-1/2) + ; 
 
 % Yük Basıncı Modeli (PL) 
 PL_model = ((f_x - 1) ./ (f_x + 1)) * (Ps - Pr) .* sign(I_range);
