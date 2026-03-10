@@ -1,0 +1,89 @@
+% Servo Valf Statik Özelliklerinin Test Verileri ile Modellenmesi
+% Verilerin Yüklenmesi
+
+%%
+psi2Pa = 6894.75729;
+lpm2m3Ps = 1/60e3; 
+m3Ps2lpm = 1/ lpm2m3Ps; 
+
+bar2Pa = 1e5; 
+%%
+% Flow Gain Test
+close all 
+
+flowGainCurrent_A = flowGainedited.CurrentA;  
+flowGainFlow_lpm    = flowGainedited.Flowlpm; 
+figure
+scatter(flowGainCurrent_A,flowGainFlow_lpm,".")
+xlabel("Current (A)")
+ylabel("Flow (lpm)")
+grid on
+
+% Pressure Gain Test
+pressureGainCurrent_A     = pressureGainedited.CurrentA;  
+pressureGainPressure_bar    = pressureGainedited.Pressurebar; 
+figure
+scatter(pressureGainCurrent_A,pressureGainPressure_bar,".")
+xlabel("Current (A)")
+ylabel("Pressure (bar)")
+grid on
+
+% Leakage Test
+% Burada zoomlu veri seti alınmış dikkat edilecek!
+leakageCurrent_A        = leakage500edited.CurrentA;  
+leakageFlow_lpm         = leakage500edited.Flowlpm; 
+figure
+scatter(leakageCurrent_A,leakageFlow_lpm,".")
+xlabel("Current (A)")
+ylabel("Flow (lpm)")
+grid on
+%% 1. Sisteme Ait Giriş Verileri (Katalog ve Test Koşulları)
+Ps = 3000 * psi2Pa; % 3000psi yapıldı  % [bar] Besleme basıncı (Örnek değer, kendi test verinizle güncelleyin)
+Pr = 0;             % [bar] Dönüş hattı basıncı
+
+% Katalogdan veya Testten Alınacak Veriler:
+Q_max = max(flowGainFlow_lpm * lpm2m3Ps); 
+I_max = max(flowGainCurrent_A); 
+DeltaP_FlowGain = 1000 * psi2Pa; % Flow gain testleri 1000 psi deltaP'de yapıldı
+
+K = sqrt(2) * Q_max / (sqrt(DeltaP_FlowGain) * I_max);
+
+Q_tare = 0.64 * lpm2m3Ps; % Test verisinden elde edildi
+Q_leak_net_max = 1.32 * lpm2m3Ps; % Test verisinden elde edildi.
+
+Qs_at_x0 = Q_leak_net_max;
+
+x0 = Qs_at_x0 / (sqrt(2)*K*sqrt(Ps-Pr));
+
+PL_at_x0 = 153.35 * bar2Pa;
+
+k = (1/2) * sqrt((Ps - Pr + PL_at_x0)/(Ps - Pr - PL_at_x0)) - 1; 
+
+%% 4. Model Simülasyonu ve Görselleştirme
+I_range = linspace(-25e-3, 25e-3, 500); % Akım aralığı [A]
+
+% Sürekli f(x) fonksiyonu
+f_x = (1 + abs(I_range)/x0).^2 .* (1 + k * abs(I_range)/x0_val).^2;
+
+% Sızıntı Debisi Modeli (Qs) 
+Qs_model = 2 * K * sqrt(Ps - Pr) * (x0 + abs(I_range)) .* (1 + f_x).^(-1/2);
+
+% Yük Basıncı Modeli (PL) 
+PL_model = ((f_x - 1) ./ (f_x + 1)) * (Ps - Pr) .* sign(I_range);
+
+
+% Grafik Çizimi
+figure;
+subplot(2,1,1);
+plot(I_range*1e3, Qs_model*m3Ps2lpm + 0.64, 'b-', 'LineWidth', 1.5); hold on;
+plot(leakageCurrent_A*1e3, leakageFlow_lpm, 'ro'); % Test verinizi buraya ekleyin
+title('Sızıntı Debisi (Internal Leakage)');
+xlabel('Akım (mA)'); ylabel('Debi (l/min)'); grid on;
+
+subplot(2,1,2);
+plot(I_range*1e3, PL_model, 'r-', 'LineWidth', 1.5); hold on;
+plot(pressureGainCurrent_A*1e3, pressureGainPressure_bar, 'bo'); % Test verinizi buraya ekleyin
+title('Basınç Hassasiyeti (Pressure Sensitivity)');
+xlabel('Akım (mA)'); ylabel('Yük Basıncı (bar)'); grid on;
+
+
